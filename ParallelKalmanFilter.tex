@@ -98,5 +98,163 @@ The tasks that remain then are as follows:
   \item Solve the system of equations $\Sigma^{-1} \mu = \xi$ to give us $\mu$.
 \end{itemize}
 
+Define the matrices $D \equiv A^TQ^{-1}A + C^T R^{-1} C$, $E \equiv Q^{-1} + D$ and $F \equiv -Q^{-1}A$. We may thus re-write
+%
+\begin{IEEEeqnarray}{rCl}
+ \Sigma^{-1} & = & 
+    \begin{bmatrix}
+        E & F^T & 0   & \hdots & 0 & 0 \\
+        F & E   & F^T & \hdots & 0 & 0 \\
+        0 & F   & E   & \ddots & 0 & 0 \\
+        \vdots & \vdots & \ddots & \ddots & \ddots & \vdots \\
+        0 & 0 & 0 & \ddots & E & F^T \\
+        0 & 0 & 0 & \hdots & F & Q^{-1} \\
+    \end{bmatrix}
+\end{IEEEeqnarray}
+Let $M$ be the size of matrices $F$ and $E$ such that they are both $M \times M$ matrices and $N$ be the number of
+blocks in $\Sigma^{-1}$ suck that $\Sigma^{-1}$ is $MN \times MN$. If we define the $MN \times MN$ block circulant matrix
+%
+\begin{IEEEeqnarray}{rCl}
+ C & = & 
+    \begin{bmatrix}
+        E & F^T & 0   & \hdots & 0 & F \\
+        F & E   & F^T & \hdots & 0 & 0 \\
+        0 & F   & E   & \ddots & 0 & 0 \\
+        \vdots & \vdots & \ddots & \ddots & \ddots & \vdots \\
+        0 & 0 & 0 & \ddots & E & F^T \\
+        F^T & 0 & 0 & \hdots & F & E \\
+    \end{bmatrix}
+\end{IEEEeqnarray}
+and $MN \times MN$ matrix
+\begin{IEEEeqnarray}{rCl}
+ \Delta & = & 
+    \begin{bmatrix}
+        0 & 0 & \hdots & 0 & F \\
+        0 & 0 & \hdots & 0 & 0 \\
+        \vdots & \vdots & \ddots & \vdots & \vdots \\
+        0 & 0 & \hdots & 0 & 0 \\
+        F^T & 0 & \hdots & 0 & D \\
+    \end{bmatrix}
+\end{IEEEeqnarray}
+then $\Sigma^{-1} = C - \Delta$. The matrix $\Delta$ factorises into $\Delta = UV^T$ where
+\begin{equation}
+    U = \begin{bmatrix} I & 0 \\ 0 & 0 \\ 0 & F^T \end{bmatrix}, \quad
+    V^T = \begin{bmatrix} 0 & 0 & F \\ I & 0 & F^{-T} D \end{bmatrix}
+\end{equation}
+and $U$ and $V$ are $MN \times 2M$. Via the Woodbury identity:
+\begin{IEEEeqnarray}{rCl}
+    \Sigma & = & (C - UV^T)^{-1} \\
+           & = & C^{-1} + C^{-1}U(1-V^TC^{-1}U)^{-1}V^TC^{-1}
+\end{IEEEeqnarray}
+The value $V^TC^{-1}U$ may be found directly. Since $C$ is block circulant and symmetric, so will $C^{-1}$ be. Label the 
+blocks as follows:
+\begin{equation}
+    C^{-1} =
+    \begin{bmatrix}
+        C^{-1}_0 & C^{-1}_{1} & \hdots & C^{-1}_{N-1} \\
+        C^{-1}_{N-1} & C^{-1}_{0} & \hdots & C^{-1}_{N-2} \\
+        \vdots & \vdots & \ddots & \vdots \\
+        C^{-1}_1 & C^{-1}_{2} & \hdots & C^{-1}_{0}
+    \end{bmatrix}
+\end{equation}
+where $C^{-1}_i$ is the transpose of $C^{-1}_{N-i}$ and hence
+\begin{IEEEeqnarray}{rCl}
+    V^TC^{-1}U & = &
+        \begin{bmatrix} 0 & 0 & F \\ I & 0 & F^{-T} D \end{bmatrix}
+        \begin{bmatrix}
+            C^{-1}_{0} & \hdots & C^{-1}_{N-1} \\ \vdots & \ddots & \vdots \\ C^{-1}_{1} & \hdots & C^{-1}_{0}
+        \end{bmatrix}
+        \begin{bmatrix} I & 0 \\ 0 & 0 \\ 0 & F^T \end{bmatrix} \\
+               & = &
+        \begin{bmatrix} 0 & 0 & F \\ I & 0 & F^{-T} D \end{bmatrix}
+        \begin{bmatrix}
+            C^{-1}_{0} & C^{-1}_{N-1} F^T \\
+            \vdots & \vdots \\
+            C^{-1}_{1} & C^{-1}_{0} F^T
+        \end{bmatrix} \\
+               & = &
+        \begin{bmatrix}
+            F C^{-1}_{1} & F C^{-1}_{0} F^T \\
+            C^{-1}_{0} + F^{-T}D C^{-1}_{1} & C^{-1}_{N-1} F^T + F^{-T}D C^{-1}_{0} F^T
+        \end{bmatrix}
+\end{IEEEeqnarray}
+which is $2M \times 2M$. Since $C$ is block circulant, its inverse will also be block circulant and so it is sufficient
+to solve the following system:
+\begin{IEEEeqnarray}{rCl}
+    \underbrace{\begin{bmatrix} I \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \end{bmatrix}}_{MN \times M} & = &
+    \underbrace{\begin{bmatrix}
+        E & F^T & 0   & \hdots & 0 & F \\
+        F & E   & F^T & \hdots & 0 & 0 \\
+        0 & F   & E   & \ddots & 0 & 0 \\
+        \vdots & \vdots & \ddots & \ddots & \ddots & \vdots \\
+        0 & 0 & 0 & \ddots & E & F^T \\
+        F^T & 0 & 0 & \hdots & F & E \\
+    \end{bmatrix}}_{MN \times MN}
+        \underbrace{\begin{bmatrix}
+            C^{-1}_{0} \\ 
+            C^{-1}_{1} \\ 
+            \vdots \\
+            C^{-1}_{N-1}
+            \end{bmatrix}}_{MN \times M}.
+\end{IEEEeqnarray}
+
+De Mazancourt and Gerlic show that this may be solved sequentially in $O(NM^3)$ time.
+
+Let the matrix $(I - V^T C^{-1} U)^{-1}$ have the following $M \times M$ blocks:
+\begin{equation}
+    (I - V^T C^{-1} U)^{-1} = \begin{bmatrix} \alpha & \beta \\ \gamma & \delta \end{bmatrix}.
+\end{equation}
+then
+\begin{IEEEeqnarray}{rCl}
+    U \begin{bmatrix} \alpha & \beta \\ \gamma & \delta \end{bmatrix} V^T & = &
+        U \begin{bmatrix}
+            \beta & 0 & \hdots & 0 & \alpha F + \beta F^{-T}D \\
+            \delta & 0 & \hdots & 0 & \gamma F + \delta F^{-T}D
+        \end{bmatrix} \\
+        & = &
+        \begin{bmatrix}
+            \beta & 0 & \hdots & 0 & \alpha F + \beta F^{-T}D \\
+            0 & 0 & \hdots & 0 & 0\\
+            \vdots & \vdots & \ddots & \vdots & \vdots \\
+            0 & 0 & \hdots & 0 & 0\\
+            F^T \delta & 0 & \hdots & 0 & F^T \gamma F + F^T \delta F^{-T}D
+        \end{bmatrix}
+\end{IEEEeqnarray}
+so, if $M = C^{-1}U(1-V^TC^{-1}U)^{-1}V^TC^{-1} $, then
+\begin{IEEEeqnarray}{rCl}
+    M & = &
+        C^{-1} \begin{bmatrix}
+            \beta & 0 & \hdots & 0 & \alpha F + \beta F^{-T}D \\
+            0 & 0 & \hdots & 0 & 0\\
+            \vdots & \vdots & \ddots & \vdots & \vdots \\
+            0 & 0 & \hdots & 0 & 0\\
+            F^T \delta & 0 & \hdots & 0 & F^T \gamma F + F^T \delta F^{-T}D
+        \end{bmatrix} C^{-1} \\
+    & = &
+        C^{-1} \begin{bmatrix}
+            M_{11} & 0 & \hdots & 0 & M_{12} \\
+            0 & 0 & \hdots & 0 & 0\\
+            \vdots & \vdots & \ddots & \vdots & \vdots \\
+            0 & 0 & \hdots & 0 & 0\\
+            M_{21} & 0 & \hdots & 0 & M_{22} \\
+        \end{bmatrix} C^{-1} \\
+    & = &
+        C^{-1} \begin{bmatrix}
+            M_{11} C^{-1}_0 + M_{12} C^{-1}_{1} & M_{11} C^{-1}_1 + M_{12} C^{-1}_{2} & \hdots  &
+                M_{11} C^{-1}_{j-1} + M_{12} C^{-1}_{j} & \hdots \\
+            0 \\
+            \vdots \\
+            0 \\
+            M_{21} C^{-1}_0 + M_{22} C^{-1}_{1} & M_{21} C^{-1}_1 + M_{12} C^{-1}_{2} & \hdots  &
+                M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j} & \hdots \\
+        \end{bmatrix} \\
+\end{IEEEeqnarray}
+so the $i, j$-th block of $M$ will be
+\[
+    M_{i,j} = 
+    C^{-1}_{N - i + 1 \mbox{ mod } N} ( M_{11} C^{-1}_{j-1} + M_{12} C^{-1}_{j} ) +
+    C^{-1}_{N - i} ( M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j}  )
+\]
+
 
 \end{document}
