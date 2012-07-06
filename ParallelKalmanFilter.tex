@@ -250,11 +250,13 @@ so, if $M = C^{-1}U(1-V^TC^{-1}U)^{-1}V^TC^{-1} $, then
         \end{bmatrix} \\
 \end{IEEEeqnarray}
 so the $i, j$-th block of $M$ will be
-\[
-    M_{i,j} = 
+\begin{IEEEeqnarray}{rCl}
+    M_{i,j} & = & 
     C^{-1}_{N - i + 1 \mbox{ mod } N} ( M_{11} C^{-1}_{j-1} + M_{12} C^{-1}_{j} ) +
-    C^{-1}_{N - i} ( M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j}  )
-\]
-
+    C^{-1}_{N - i} ( M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j}  ) \nonumber \\
+    & = &
+    (C^{-1}_{i-1})^T ( M_{11} C^{-1}_{j-1} + M_{12} C^{-1}_{j} ) + 
+    (C^{-1}_{i})^T ( M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j}  )
+\end{IEEEeqnarray}
 
 \end{document}
