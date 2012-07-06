@@ -1,0 +1,5 @@
+set sw=4
+set sts=4
+set et
+set makeprg=make\ -C\ build
+set tw=120
