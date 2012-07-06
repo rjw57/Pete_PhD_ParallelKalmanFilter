@@ -93,10 +93,13 @@ Thus we can write,
 
 The tasks that remain then are as follows:
 \begin{itemize}
-  \item Calculate the diagonal blocks of $\Sigma$.
-  \item Evaluate the vector $\xi = \left[ (GSG^T)^{-1} F x_0 + H^T T^{-1} Y \right]$.
+  \item Evaluate the vector $\xi = \left[ (GSG^T)^{-1} F x_0 + H^T T^{-1} Y \right]$. Since $(GSG^T)^{-1}$ has a simple
+      form, this can be done in $O(N)$ time and is embarassingly parallel.
+  \item Calculate the diagonal blocks of $\Sigma$ to give the individual covariances.
   \item Solve the system of equations $\Sigma^{-1} \mu = \xi$ to give us $\mu$.
 \end{itemize}
+It is these last two operations which must run in $O(NM^3)$ time to equal the complexity of the Kalman filter. Ideally
+they should be parallelisable in $N$ making the overall parallel algorithm $O(M^3)$.
 
 Define the matrices $D \equiv A^TQ^{-1}A + C^T R^{-1} C$, $E \equiv Q^{-1} + D$ and $F \equiv -Q^{-1}A$. We may thus re-write
 %
@@ -157,26 +160,32 @@ blocks as follows:
         C^{-1}_1 & C^{-1}_{2} & \hdots & C^{-1}_{0}
     \end{bmatrix}
 \end{equation}
-where $C^{-1}_i$ is the transpose of $C^{-1}_{N-i}$ and hence
+where the $i, j$-th block of $C^{-1}$ is labeled $C_{N+j-i \mbox{ mod } N}$.
+Note that $C^{-1}_i$ is the transpose of $C^{-1}_{N-i}$ and hence
 \begin{IEEEeqnarray}{rCl}
-    V^TC^{-1}U & = &
-        \begin{bmatrix} 0 & 0 & F \\ I & 0 & F^{-T} D \end{bmatrix}
+    I - V^TC^{-1}U & = &
+        I - \begin{bmatrix} 0 & 0 & F \\ I & 0 & F^{-T} D \end{bmatrix}
         \begin{bmatrix}
             C^{-1}_{0} & \hdots & C^{-1}_{N-1} \\ \vdots & \ddots & \vdots \\ C^{-1}_{1} & \hdots & C^{-1}_{0}
         \end{bmatrix}
         \begin{bmatrix} I & 0 \\ 0 & 0 \\ 0 & F^T \end{bmatrix} \\
                & = &
-        \begin{bmatrix} 0 & 0 & F \\ I & 0 & F^{-T} D \end{bmatrix}
+        I -\begin{bmatrix} 0 & 0 & F \\ I & 0 & F^{-T} D \end{bmatrix}
         \begin{bmatrix}
             C^{-1}_{0} & C^{-1}_{N-1} F^T \\
             \vdots & \vdots \\
             C^{-1}_{1} & C^{-1}_{0} F^T
         \end{bmatrix} \\
                & = &
-        \begin{bmatrix}
+        I - \begin{bmatrix}
             F C^{-1}_{1} & F C^{-1}_{0} F^T \\
             C^{-1}_{0} + F^{-T}D C^{-1}_{1} & C^{-1}_{N-1} F^T + F^{-T}D C^{-1}_{0} F^T
-        \end{bmatrix}
+        \end{bmatrix} \\
+               & = &
+        \begin{bmatrix}
+            I - F C^{-1}_{1} & - F C^{-1}_{0} F^T \\
+            - C^{-1}_{0} - F^{-T}D C^{-1}_{1} & I - (C^{-1}_1)^T F^T - F^{-T}D C^{-1}_{0} F^T
+        \end{bmatrix} 
 \end{IEEEeqnarray}
 which is $2M \times 2M$. Since $C$ is block circulant, its inverse will also be block circulant and so it is sufficient
 to solve the following system:
@@ -240,23 +249,60 @@ so, if $M = C^{-1}U(1-V^TC^{-1}U)^{-1}V^TC^{-1} $, then
         \end{bmatrix} C^{-1} \\
     & = &
         C^{-1} \begin{bmatrix}
-            M_{11} C^{-1}_0 + M_{12} C^{-1}_{1} & M_{11} C^{-1}_1 + M_{12} C^{-1}_{2} & \hdots  &
+            M_{11} C^{-1}_0 + M_{12} C^{-1}_{1} & \hdots  &
                 M_{11} C^{-1}_{j-1} + M_{12} C^{-1}_{j} & \hdots \\
             0 \\
             \vdots \\
             0 \\
-            M_{21} C^{-1}_0 + M_{22} C^{-1}_{1} & M_{21} C^{-1}_1 + M_{12} C^{-1}_{2} & \hdots  &
+            M_{21} C^{-1}_0 + M_{22} C^{-1}_{1} & \hdots  &
                 M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j} & \hdots \\
-        \end{bmatrix} \\
+        \end{bmatrix} 
 \end{IEEEeqnarray}
-so the $i, j$-th block of $M$ will be
+so the $i j$-th block of $M$ will be
 \begin{IEEEeqnarray}{rCl}
-    M_{i,j} & = & 
+    M_{ij} & = & 
     C^{-1}_{N - i + 1 \mbox{ mod } N} ( M_{11} C^{-1}_{j-1} + M_{12} C^{-1}_{j} ) +
     C^{-1}_{N - i} ( M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j}  ) \nonumber \\
     & = &
     (C^{-1}_{i-1})^T ( M_{11} C^{-1}_{j-1} + M_{12} C^{-1}_{j} ) + 
-    (C^{-1}_{i})^T ( M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j}  )
+    (C^{-1}_{i})^T ( M_{21} C^{-1}_{j-1} + M_{22} C^{-1}_{j}  ) \nonumber \\
+    & \equiv &
+    \begin{bmatrix}
+        C^{-1}_{i-1} \\ C^{-1}_{i}
+    \end{bmatrix}^T
+    \begin{bmatrix}
+        M_{11} & M_{12} \\ M_{21} & M_{22} \\
+    \end{bmatrix}
+    \begin{bmatrix}
+        C^{-1}_{j-1} \\ C^{-1}_{j}
+    \end{bmatrix}
+\end{IEEEeqnarray}
+and hence the $i, j$-th block of $\Sigma$ will be
+\begin{IEEEeqnarray}{rCl}
+    \Sigma_{ij} = C^{-1}_{N+j-i \mbox{ mod } N} +
+    \begin{bmatrix}
+        C^{-1}_{i-1} \\ C^{-1}_{i}
+    \end{bmatrix}^T
+    \begin{bmatrix}
+        M_{11} & M_{12} \\ M_{21} & M_{22} \\
+    \end{bmatrix}
+    \begin{bmatrix}
+        C^{-1}_{j-1} \\ C^{-1}_{j}
+    \end{bmatrix}
+\end{IEEEeqnarray}
+and the $k$-th diagonal block will be
+\begin{IEEEeqnarray}{rCl}
+    \Sigma_{k} = C^{-1}_{0} +
+    \begin{bmatrix}
+        C^{-1}_{k-1} \\ C^{-1}_{k}
+    \end{bmatrix}^T
+    \begin{bmatrix}
+        M_{11} & M_{12} \\ M_{21} & M_{22} \\
+    \end{bmatrix}
+    \begin{bmatrix}
+        C^{-1}_{k-1} \\ C^{-1}_{k}
+    \end{bmatrix}
 \end{IEEEeqnarray}
 
 \end{document}
+
